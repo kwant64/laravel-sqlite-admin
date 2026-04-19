@@ -13,7 +13,7 @@ Voor een VCS repository:
   "repositories": [
     {
       "type": "vcs",
-      "url": "https://github.com/jouw-org/laravel-sqlite-admin"
+      "url": "https://github.com/kwant64/laravel-sqlite-admin"
     }
   ]
 }
