@@ -79,7 +79,7 @@ https://jouwdomein.nl/sqlite-admin
 - Database kiezen of aanmaken
 - Tabellen/views overzicht
 - Browse met sortering + paginatie
-- Insert / Edit / Delete
+- Insert / Edit / Copy / Delete
 - SQL runner
 - SQL import
 - SQL export (database of per tabel)
