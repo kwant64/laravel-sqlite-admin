@@ -593,7 +593,7 @@
                             <thead>
                             <tr>
                                 @if($identityType !== 'none')
-                                    <th>Edit</th>
+                                    <th>Acties</th>
                                 @endif
                                 @if($identityType === 'rowid')
                                     @php
@@ -627,6 +627,8 @@
                                             <td style="white-space: nowrap;">
                                                 @if($locator !== null && $locator !== '')
                                                     <a class="link success" href="{{ route('sqlite-admin.index', ['view' => 'edit', 'table' => $tableParam, 'row' => $locator]) }}">Edit</a>
+                                                    |
+                                                    <a class="link" href="{{ route('sqlite-admin.index', ['view' => 'insert', 'table' => $tableParam, 'copy' => $locator]) }}">Copy</a>
                                                 @else
                                                     -
                                                 @endif
@@ -675,6 +677,12 @@
                         <a class="link" href="{{ route('sqlite-admin.index', ['view' => 'browse', 'table' => $tableParam]) }}">Terug naar browse</a>
                     </div>
                     <h2>Insert: {{ $tableParam }}</h2>
+                    @if(($insertData['sourceLocator'] ?? '') !== '')
+                        <p class="small">Kopie van bestaande rij. Pas waarden aan en sla op als nieuwe rij.</p>
+                    @endif
+                    @if(($insertData['rowError'] ?? '') !== '')
+                        <div class="alert error">{{ $insertData['rowError'] }}</div>
+                    @endif
                     <form method="post" action="{{ route('sqlite-admin.index', ['view' => 'browse', 'table' => $tableParam]) }}">
                         @csrf
                         <input type="hidden" name="form_action" value="insert_row">
@@ -694,14 +702,20 @@
                                 @foreach($columns as $column)
                                     @php
                                         $columnName = (string) ($column['name'] ?? '');
-                                        $hasDefault = ($column['dflt_value'] ?? null) !== null || (int)($column['pk'] ?? 0) > 0;
+                                        $copiedValue = $insertData['values'][$columnName] ?? null;
+                                        $isCopiedNull = isset($insertData['nullColumns'][$columnName]);
+                                        $isPrimaryKey = (int)($column['pk'] ?? 0) > 0;
+                                        $hasDefault = ($column['dflt_value'] ?? null) !== null || $isPrimaryKey;
+                                        $useDefaultChecked = ($insertData['sourceLocator'] ?? '') !== ''
+                                            ? $isPrimaryKey
+                                            : $hasDefault;
                                     @endphp
                                     <tr>
                                         <td class="monospace">{{ $columnName }}</td>
                                         <td>{{ $column['type'] ?? '' }}</td>
-                                        <td><input type="text" name="value[{{ $columnName }}]" value=""></td>
-                                        <td><input type="checkbox" name="is_null[{{ $columnName }}]" value="1"></td>
-                                        <td><input type="checkbox" name="use_default[{{ $columnName }}]" value="1" {{ $hasDefault ? 'checked' : '' }}></td>
+                                        <td><input type="text" name="value[{{ $columnName }}]" value="{{ $isCopiedNull ? '' : (string)$copiedValue }}"></td>
+                                        <td><input type="checkbox" name="is_null[{{ $columnName }}]" value="1" {{ $isCopiedNull ? 'checked' : '' }}></td>
+                                        <td><input type="checkbox" name="use_default[{{ $columnName }}]" value="1" {{ $useDefaultChecked ? 'checked' : '' }}></td>
                                     </tr>
                                 @endforeach
                                 </tbody>
@@ -716,6 +730,9 @@
                 <section class="panel">
                     <div class="toolbar">
                         <a class="link" href="{{ route('sqlite-admin.index', ['view' => 'browse', 'table' => $tableParam]) }}">Terug naar browse</a>
+                        @if(($editData['encodedLocator'] ?? '') !== '')
+                            <a class="link" href="{{ route('sqlite-admin.index', ['view' => 'insert', 'table' => $tableParam, 'copy' => $editData['encodedLocator']]) }}">Kopieer als nieuwe rij</a>
+                        @endif
                     </div>
                     <h2>Edit: {{ $tableParam }}</h2>
                     @if(($editData['rowError'] ?? '') !== '')
