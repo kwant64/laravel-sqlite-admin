@@ -359,6 +359,12 @@ class SqliteAdminController extends Controller
         $foreignKeys = [];
         $createSql = '';
         $browseData = null;
+        $insertData = [
+            'values' => [],
+            'nullColumns' => [],
+            'rowError' => '',
+            'sourceLocator' => '',
+        ];
         $editData = [
             'row' => null,
             'rowError' => '',
@@ -461,6 +467,37 @@ class SqliteAdminController extends Controller
 
         if ($hasDb && $view === 'insert' && $tableExists && !$tableIsView) {
             $columns = $this->fetchTableColumns($pdo, $tableParam);
+            $encodedLocator = (string)$request->query('copy', '');
+
+            if ($encodedLocator !== '') {
+                $locator = $this->decodeLocator($encodedLocator);
+                if ($locator === null) {
+                    $insertData['rowError'] = 'Ongeldige rij locator.';
+                } else {
+                    try {
+                        $row = $this->fetchRowByLocator($pdo, $tableParam, $locator, false);
+                        if ($row === null) {
+                            $insertData['rowError'] = 'Rij niet gevonden.';
+                        } else {
+                            foreach ($columns as $column) {
+                                $columnName = (string)($column['name'] ?? '');
+                                if ($columnName === '' || !array_key_exists($columnName, $row)) {
+                                    continue;
+                                }
+
+                                $insertData['values'][$columnName] = $row[$columnName];
+                                if ($row[$columnName] === null) {
+                                    $insertData['nullColumns'][$columnName] = true;
+                                }
+                            }
+
+                            $insertData['sourceLocator'] = $encodedLocator;
+                        }
+                    } catch (Throwable $exception) {
+                        $insertData['rowError'] = $exception->getMessage();
+                    }
+                }
+            }
         }
 
         if ($hasDb && $view === 'edit' && $tableExists && !$tableIsView) {
@@ -504,6 +541,7 @@ class SqliteAdminController extends Controller
             'foreignKeys' => $foreignKeys,
             'createSql' => $createSql,
             'browseData' => $browseData,
+            'insertData' => $insertData,
             'editData' => $editData,
             'sqlInput' => $sqlInput,
             'sqlRows' => $sqlRows,
